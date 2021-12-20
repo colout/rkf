@@ -1,0 +1,18 @@
+{
+    "environments": [
+        {
+          "PICO_SDK_PATH": "${workspaceFolder}/pico-sdk"
+        }
+    ],
+    "cmake.configureEnvironment": {
+        "PICO_SDK_PATH": "${workspaceFolder}/pico-sdk"
+    },
+    "cmake.environment": {
+        "PICO_SDK_PATH": "${workspaceFolder}/pico-sdk"
+    },
+    "cmake.buildBeforeRun": true,
+    "cmake.generator": "MinGW Makefiles",
+    "terminal.integrated.env.linux": {
+        "PICO_SDK_PATH": "${workspaceFolder}/pico-sdk"
+    }
+}
