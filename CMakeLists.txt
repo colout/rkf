@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
 set(PICO_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/pico-sdk)
+set(PICO_BOARD sparkfun_promicro)
 include(pico_sdk_import.cmake)
 
 set(ProjectName "rkf")
@@ -10,4 +11,4 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
-add_subdirectory(blink)
+add_subdirectory(ws2812)

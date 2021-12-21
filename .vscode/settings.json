@@ -14,5 +14,12 @@
     "cmake.generator": "MinGW Makefiles",
     "terminal.integrated.env.linux": {
         "PICO_SDK_PATH": "${workspaceFolder}/pico-sdk"
+    },
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell",
+            "args": ["-ExecutionPolicy", "Bypass"]
+        }
     }
 }
