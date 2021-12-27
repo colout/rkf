@@ -1,0 +1,51 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Build for rp20401",
+        "type": "cmake",
+        "command": "build",
+        
+        "presentation": {
+          "clear": true,
+          "panel": "shared", 
+          "reveal": "always",
+          "focus": true
+        }
+      },
+      {
+        "label": "Build for rp2040",
+        "command": "${command:cmake.buildAll}",
+        "type": "shell",
+        "group": "build"
+      },
+      {
+        "label": "Deploy to rp2040",
+        "type": "shell",
+        "windows": {
+          "command": ".\\scripts\\deploy.ps1",
+          "args": ["${workspaceFolder}\\build\\keyboard\\keyboard.uf2"]
+        },
+        "presentation": {
+          "panel": "shared", 
+          "reveal": "always",
+          "focus": true
+        }
+      },
+      {
+        "label": "Pipeline rp2040",
+        "dependsOn": [
+          "Build for rp2040", 
+          "Deploy to rp2040"
+        ],
+        "dependsOrder": "sequence",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        }
+      }
+    ]
+  }
+  

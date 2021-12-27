@@ -1,0 +1,3 @@
+
+void matrixInit();
+void matrixScan();

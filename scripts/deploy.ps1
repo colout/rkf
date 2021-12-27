@@ -1,6 +1,9 @@
+$WaitTimeMs = 500
+$TimeoutSeconds = 60
+$TotalLoops = ($TimeoutSeconds * (1000/$WaitTimeMs))
 
 Write-Host -NoNewline "Searching for microcontroller"
-while($i -lt 60) {
+while($i -lt $TotalLoops) {
     $i++
     Write-Host -NoNewline "."
 
@@ -10,11 +13,22 @@ while($i -lt 60) {
             Write-Host
             Write-Host ("Microcontroller found on " + $Drive.root)
 
-            
             Write-Host ("Copying " + $args[0] + " to " + $Drive.root)
             Copy-Item $args[0] -Destination $Drive.root
             Exit
         }
     }
-    Start-Sleep -Seconds 1
+    if ([Console]::KeyAvailable) {
+        Write-Host
+        Write-Host
+        Write-Host "Keypress detected."
+        Write-Host "Exiting without deployment."
+        Exit
+    }
+    Start-Sleep -Milliseconds $WaitTimeMs
 }
+
+Write-Host
+Write-Host
+Write-Host "Timed out."
+Write-Host "Exiting without deployment."

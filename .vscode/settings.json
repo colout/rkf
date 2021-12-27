@@ -21,5 +21,10 @@
             "icon": "terminal-powershell",
             "args": ["-ExecutionPolicy", "Bypass"]
         }
+    },
+    "files.associations": {
+        "algorithm": "cpp",
+        "random": "cpp",
+        "system_error": "cpp"
     }
 }
