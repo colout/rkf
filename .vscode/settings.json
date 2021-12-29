@@ -25,6 +25,11 @@
     "files.associations": {
         "algorithm": "cpp",
         "random": "cpp",
-        "system_error": "cpp"
+        "system_error": "cpp",
+        "array": "cpp",
+        "string_view": "cpp",
+        "initializer_list": "cpp",
+        "ranges": "cpp",
+        "utility": "cpp"
     }
 }

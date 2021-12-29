@@ -73,9 +73,9 @@
 
 // clang-format on
 struct RGB {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
+    uint8_t r=0;
+    uint8_t g=0;
+    uint8_t b=0;
 };
 
 struct HSV {
@@ -85,4 +85,4 @@ struct HSV {
 };
 
 RGB hsv_to_rgb(HSV hsv);
-RGB hsv_to_rgb_nocie(HSV hsv);
+uint32_t rgbToInt32(RGB c);

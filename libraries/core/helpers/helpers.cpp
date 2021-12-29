@@ -21,3 +21,10 @@ void printBits(size_t const size, void const * const ptr)
         }
     }
 }
+
+uint8_t lerp255(uint8_t value, uint8_t new_max) {
+    // Scale down from 255 to new range
+
+    uint32_t v = (uint32_t)(new_max * value) / 255;
+    return v;
+}

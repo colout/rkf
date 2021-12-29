@@ -38,7 +38,7 @@
 #define DIODE_DIRECTION COL2ROW
 
 
-#define LED_PIN 1
+#define LED_PIN 0
 #define LED_LENGTH 38
 
 #define RGB_MATRIX_ENABLE
