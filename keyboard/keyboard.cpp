@@ -14,7 +14,7 @@
 
 RgbMatrix rgbMatrix;
 
-// Breathe
+// // Breathe
 uint8_t brightness = 0;
 int8_t breatheDirection = 1;
 void animateBreathe() {
@@ -45,8 +45,13 @@ int main() {
     absolute_time_t timerAnimateRGB = make_timeout_time_ms(TIME_BETWEEN_ANIMATE_RGB);
 
     while (true) {
+        // So we can time out other things
         absolute_time_t timerFullLoop = get_absolute_time();
-        matrixScan();
+        
+        // Takes under 200us no input.  300us with input
+        //uint32_t t_start = time_us_32(); // Start timer wrap
+        matrixScan();  
+        //uint32_t t_end = time_us_32();  printf("%d\n", t_end - t_start);  // end timer wrap
 
         // Do non-matrix scan stuff.  Only do one per loop.
         if (time_reached(timerAnimateRGB)) {

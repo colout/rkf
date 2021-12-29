@@ -1,5 +1,5 @@
 
-add_executable(keyboard config.h keyboard.cpp matrix_scan.cpp)
+add_executable(keyboard config.h keyboard.cpp matrix_scan.cpp process_record.h process_record.cpp)
 
 include("${CMAKE_CURRENT_LIST_DIR}/../libraries/core/rgb/rgb.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/../libraries/core/helpers/helpers.cmake")
