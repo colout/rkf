@@ -8,6 +8,7 @@
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "process_record.h"
+
 static uint32_t row_scanmask;
 
 const uint8_t row_pins[] = MATRIX_ROW_PINS;
