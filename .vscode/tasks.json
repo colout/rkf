@@ -21,7 +21,7 @@
         "group": "build",  
         "windows": {
           "command": ".\\scripts\\deploy.ps1",
-          "args": ["${workspaceFolder}\\build\\keyboard\\keyboard.uf2"]
+          "args": ["${workspaceFolder}\\build\\rkf\\rkf.uf2"]
         },
         "presentation": {
           "panel": "shared", 

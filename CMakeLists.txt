@@ -5,9 +5,10 @@ set(PICO_BOARD sparkfun_promicro)
 include(pico_sdk_import.cmake)
 
 # This is bad...should I use a specific config directory???
-include_directories ("${CMAKE_CURRENT_LIST_DIR}/keyboard")
+include_directories ("${CMAKE_CURRENT_LIST_DIR}/rkf")
 
 set(ProjectName "rkf")
+
 project(rkf C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
@@ -16,4 +17,4 @@ set(PICO_CXX_ENABLE_RTTI 1)
 
 pico_sdk_init()
 
-add_subdirectory(keyboard)
+add_subdirectory(rkf)

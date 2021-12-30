@@ -8,7 +8,6 @@
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "process_record.h"
-
 static uint32_t row_scanmask;
 
 const uint8_t row_pins[] = MATRIX_ROW_PINS;
@@ -17,11 +16,6 @@ const uint8_t col_pins[] = MATRIX_COL_PINS;
 static uint32_t row_scanval[MATRIX_ROWS];
 static uint32_t col_masks[MATRIX_COLS];
 
-// const uint8_t row_pins[] = MATRIX_COL_PINS;
-// const uint8_t col_pins[] = MATRIX_ROW_PINS;
-
-// static uint32_t row_scanval[MATRIX_COLS];
-// static uint32_t col_masks[MATRIX_ROWS];
 
 typedef struct {
     bool on;
@@ -84,25 +78,19 @@ void matrixScan() {
                 if (elapsed >= DEBOUNCE_COUNT) {
                     matrix_states[x].on = on;
                     matrix_states[x].last = count;
-                    matrix_changed(ncol, nrow, on, count);
+                    //matrix_changed(ncol, nrow, on, count);
 
                     keyrecord_t record;
 
                     record.event.key.col = ncol;
                     record.event.key.row = nrow;
                     record.event.pressed = on;
-                    record.event.time = elapsed;
-                    record.keycode = 999;
+                    record.event.time = to_ms_since_boot(get_absolute_time());
+                    record.keycode = KC_UNDEFINED;
 
-                    process_record(999, &record);
+                    process_record(&record);
 
-
-
-
-
-                } else {
-                    // Debounced
-                }
+                } else {} // Debounced
             }
             x++;
         }

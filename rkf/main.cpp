@@ -6,8 +6,6 @@
 #include "helpers.h"
 #include "boards/sparkfun_promicro.h"
 
-#include "keyboard.h"
-#include "keymap.cpp"
 #include "matrix_scan.h"
 
 #define TIME_BETWEEN_ANIMATE_RGB 16

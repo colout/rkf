@@ -1,5 +1,6 @@
 #include "config.h"
 #include "color.h"
+
 #pragma once
 
 // Key reactive

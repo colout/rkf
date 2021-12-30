@@ -17,6 +17,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 // clang-format off
@@ -71,18 +72,17 @@
 #define HSV_YELLOW       43, 255, 255
 #define HSV_OFF         HSV_BLACK
 
-// clang-format on
-struct RGB {
-    uint8_t r=0;
-    uint8_t g=0;
-    uint8_t b=0;
-};
+typedef struct RGB {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+} RGB;
 
-struct HSV {
+typedef struct HSV {
     uint8_t h;
     uint8_t s;
     uint8_t v;
-};
+} HSV;
 
 RGB hsv_to_rgb(HSV hsv);
 uint32_t rgbToInt32(RGB c);
