@@ -13,6 +13,7 @@
 #include "matrix_scan.h"
 #include "hid.h"
 #include "animation.h"
+#include "serial.h"
 
 // USB
 #include "bsp/board.h"
@@ -77,6 +78,5 @@ int main() {
             drawLEDsNextFrame = false;
         }
     }
-    sleep_ms(16);
     return 0;
 }

@@ -15,6 +15,8 @@ add_executable(rkf
         hid.h
         animation.h
         animation.cpp
+        serial.h
+        serial.cpp
     ) 
 
 include("${CMAKE_CURRENT_LIST_DIR}/../libraries/core/rgb/rgb.cmake")
