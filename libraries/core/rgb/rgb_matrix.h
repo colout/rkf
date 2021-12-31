@@ -1,3 +1,5 @@
+#pragma once
+#include "rgb_matrix_types.h"
 #include "color.h"
 
 class RgbMatrix {
@@ -14,5 +16,5 @@ class RgbMatrix {
         void setAll(RGB c);
         void set(uint8_t n, RGB c);
         void draw();
-        void initializeRGB(uint ledPin, uint numLED, bool isRGBW, uint8_t maxbrightness);
+        void initializeRGB(uint8_t ledPin, uint8_t numLED, bool isRGBW, uint8_t maxbrightness);
 }; 

@@ -39,7 +39,7 @@ typedef struct {
 } led_point_t;
 
 typedef struct {
-    uint8_t     matrix_co[KEYS_ROWS][KEYS_COLS];
+    uint8_t     matrix_co[10][6]; // TODO: Not sure how the config matrix got that way.  Will take a look since this should match rows/columns
     led_point_t point[DRIVER_LED_TOTAL];
     uint8_t     flags[DRIVER_LED_TOTAL];
 } led_config_t;

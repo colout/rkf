@@ -4,6 +4,7 @@ add_executable(rkf
         matrix_scan.cpp
         process_record.cpp
         config.h
+        config_rgb.h
         keycodes.h
         matrix_scan.h
         process_record.h
@@ -12,6 +13,8 @@ add_executable(rkf
         tusb_config.h
         hid.c
         hid.h
+        animation.h
+        animation.cpp
     ) 
 
 include("${CMAKE_CURRENT_LIST_DIR}/../libraries/core/rgb/rgb.cmake")

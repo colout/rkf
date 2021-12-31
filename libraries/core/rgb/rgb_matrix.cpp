@@ -42,7 +42,35 @@ void RgbMatrix::set(uint8_t n, RGB c) {
 }
 
 void RgbMatrix::draw() {
-    for (uint8_t i=0; i<numLEDs; i++) {
+    // Default full range for non-split
+    uint8_t startLED = 0;
+    uint8_t endLed = numLEDs;
+
+    // Left side, leader has lower half
+    #ifdef SPLIT_LEFT
+        if (IS_FOLLOWER) {
+            startLED = 0;
+            endLed = numLEDs / 2;
+        } else if (IS_LEADER) {
+            startLED = numLEDs / 2;
+            endLed = numLEDs;
+        }
+    #endif
+
+    // Right side, follower has lower half
+    #ifdef SPLIT_RIGHT
+        if (IS_LEADER) {
+            startLED = 0;
+            endLed = numLEDs / 2;
+        } else if (IS_FOLLOWER) {
+            startLED = numLEDs / 2;
+            endLed = numLEDs;
+        }
+    #endif
+    
+
+
+    for (uint8_t i=startLED; i<endLed; i++) {
         // Adjust to max brightness with lerp
         put_pixel(limitBrightness(pinValues[i]));
     }
@@ -52,7 +80,7 @@ RgbMatrix::RgbMatrix() {
 
 }
 
-void RgbMatrix::initializeRGB(uint ledPin, uint numleds, bool isRGBW, uint8_t maxbrightness) {
+void RgbMatrix::initializeRGB(uint8_t ledPin, uint8_t numleds, bool isRGBW, uint8_t maxbrightness) {
     numLEDs = numleds;
     pinValues = new RGB[numLEDs];
     maxBrightness = maxbrightness;
@@ -60,7 +88,7 @@ void RgbMatrix::initializeRGB(uint ledPin, uint numleds, bool isRGBW, uint8_t ma
     // todo get free sm
     PIO pio = pio0;
     int sm = 0;
-    uint offset = pio_add_program(pio, &ws2812_program);
+    uint8_t offset = pio_add_program(pio, &ws2812_program);
 
     ws2812_program_init(pio, sm, offset, ledPin, 800000, isRGBW);
     

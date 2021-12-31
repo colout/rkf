@@ -54,14 +54,6 @@ void matrixInit () {
     memset(matrix_states, 0, sizeof(matrix_states));
 }
 
-__attribute__((weak)) void matrix_changed(uint ncol, uint nrow, bool on, uint8_t when) {
-    printf("matrix_changed: col=%d row=%d %s when=%d\n", ncol, nrow, on ? "ON" : "OFF", when);
-}
-
-__attribute__((weak)) void matrix_suppressed(uint ncol, uint nrow, bool on, uint8_t when, uint8_t last, uint8_t elapsed) {
-    //printf("matrix_suppressed: col=%d row=%d %s when=%d last=%d elapsed=%d\n", ncol, nrow, on ? "ON" : "OFF", when, last, elapsed);
-}
-
 void matrixScan() {
     static uint8_t count = 0;
     uint x = 0;
