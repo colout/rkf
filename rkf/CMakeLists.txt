@@ -17,6 +17,9 @@ add_executable(rkf
         animation.cpp
         serial.h
         serial.cpp
+        transactions.h
+        transactions.cpp
+        transaction_id_define.h
     ) 
 
 include("${CMAKE_CURRENT_LIST_DIR}/../libraries/core/rgb/rgb.cmake")

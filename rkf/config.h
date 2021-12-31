@@ -63,8 +63,7 @@ extern bool IS_FOLLOWER;       // aka "Slave"
 // Total scan time = ~(SCAN_INTERVAL_US * ROW_COUNT)
 
 // Serial
-#define UART_ID uart0
-#define BAUD_RATE 115200
+#define SOFT_SERIAL_PIN D2
 
 enum layer_codes {
   LC_RAISE = SAFE_RANGE,
