@@ -1,6 +1,7 @@
 #include "helpers.h"
 #include "pico/stdlib.h"
 #include <stdio.h>
+#include <string.h>
 
 void serialLog (uint32_t output) {
     char outText[50] = {0};
@@ -28,3 +29,16 @@ uint8_t lerp255(uint8_t value, uint8_t new_max) {
     uint32_t v = (uint32_t)(new_max * value) / 255;
     return v;
 }
+
+
+void intArrayToCharArray(uint8_t *i[], char *c[]) {
+    memcpy(i, c, sizeof(*i));
+}
+
+void printString(uint8_t data[], uint8_t size) {
+    for (int i = 0; i<size; i++) {
+        printf("%c", data[i]);
+    }
+}
+
+

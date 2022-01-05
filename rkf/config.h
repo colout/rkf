@@ -7,7 +7,11 @@
 extern bool IS_USB_CONNECTED;  // Detect USB
 extern bool IS_LEADER;         // aka "Master"
 extern bool IS_FOLLOWER;       // aka "Slave"
+extern uint serialSM;          // Serial state machine for 1wire
 
+// Debug mode = Disable USB, HID to enable printf to serial out
+#define DEBUG_MODE
+#define IS_LEADER_OVERRIDE true
 
 // AVR Pin maps from arduino pins (onboard LED Pins not included)
 // Left Side
