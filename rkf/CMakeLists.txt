@@ -13,6 +13,8 @@ add_executable(rkf
 #        tusb_config.h
 #        hid.c
 #        hid.h
+        serial.h
+        serial.cpp
         animation.h
         animation.cpp
     ) 

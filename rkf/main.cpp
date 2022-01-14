@@ -6,7 +6,8 @@
 // Core Libraries
 #include "rgb_matrix.h"
 #include "helpers.h"
-#include "serial_1wire.h"
+#include "serial.h"
+//#include "serial_1wire.h"
 
 
 // Local stuff
@@ -59,7 +60,7 @@ int main() {
         IS_USB_CONNECTED = tud_connected();
     #else
         // Wait 10 sec to connect to serial console if USB connected
-        absolute_time_t timerUSBInitEndTime = make_timeout_time_ms(10000);
+        absolute_time_t timerUSBInitEndTime = make_timeout_time_ms(LEADER_DETECT_TIMEOUT_MS);
         while (!time_reached(timerUSBInitEndTime)) {
             IS_USB_CONNECTED = stdio_usb_connected();
             if (IS_USB_CONNECTED) break;
@@ -72,13 +73,16 @@ int main() {
     printf ("Program starting...\n");
 
     matrixInit();
-    serialSM = serial_1wireInitalize(pio0, 1);
-
     
     printf ("Initializing RGB...\n");
     //rgbMatrix.initializeRGB(LED_PIN, RGBLED_NUM, false, RGBLIGHT_LIMIT_VAL);
     sleep_ms(100);
     
+    printf ("Initializing Serial State\n");
+    if (!IS_LEADER) serialLeaderInit();
+    if (!IS_FOLLOWER) serialFollowerInit();
+    sleep_ms(100);
+
     printf ("Starting main loop...\n");
 
     bool drawLEDsNextFrame = false;
@@ -88,22 +92,30 @@ int main() {
     while (true) {
         matrixScan();
 
-        if (IS_LEADER) {
+        if (!IS_LEADER) {
             #ifndef DEBUG_MODE
                 hid_task();
                 tud_task();
             #endif
-            uint8_t data[2] = {100};
-            serialReadBytes(serialSM, data, 2);
-            if (data[0] != 0) {
-                printf("Recieved: ");
-                printString(data, 2);
-                printf("\n");
-            }
+            writerReady();
+            serialWriteByte(170, 8);
+            // uint8_t data[2] = {100};
+            // serialReadBytes(serialSM, data, 2);
+            // if (data[0] != 0) {
+            //     printf("Recieved: ");
+            //     printString(data, 2);
+            //     printf("\n");
+            // }
+            //sleep_us(100);
         }
-        if (IS_FOLLOWER) {
-            uint8_t data[2] = {255,254};
-            serialWriteBytes(serialSM, data, 2);
+        if (!IS_FOLLOWER) {
+            readerReady();
+            uint8_t c=serialReadByte(8);
+            printf ("%d\n", c);
+            
+
+            //uint8_t data[2] = {255,254};
+            //serialWriteBytes(serialSM, data, 2);
         }
 
         // Generate Animation

@@ -9,6 +9,9 @@ extern bool IS_LEADER;         // aka "Master"
 extern bool IS_FOLLOWER;       // aka "Slave"
 extern uint serialSM;          // Serial state machine for 1wire
 
+// Timeout to wait for usb connect
+#define LEADER_DETECT_TIMEOUT_MS 5000
+
 // Debug mode = Disable USB, HID to enable printf to serial out
 #define DEBUG_MODE
 #define IS_LEADER_OVERRIDE true
@@ -36,6 +39,11 @@ extern uint serialSM;          // Serial state machine for 1wire
 #define B2 23
 #define B6 21
 
+// Serial pins
+#define DEBUG_PIN D1
+#define DATA_PIN D2
+
+// Matrix
 #define KEYS_ROWS 5
 #define KEYS_COLS 12
 #define MATRIX_ROWS 5

@@ -24,7 +24,7 @@ high            pulled_up
 ```
 # Sender syncs timer with receiver.
 *MASTER*
-* Master reads pin in loop.  Exits loop after `SERIAL_DELAY * 5us` (240 us total) OR slave pulls the pin low. 
+* Master reads pin in loop.  Exits loop after `SERIAL_DELAY * 5 iterations` (240 iterations total) OR slave pulls the pin low. 
 * After that, loop until slave pulls low. Seems redundant.
 
 ```
