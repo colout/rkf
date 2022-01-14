@@ -7,7 +7,7 @@
 #define EVEN_PARITY 0
 #define PARITY EVEN_PARITY
 
-#define SERIAL_DELAY 200
+#define SERIAL_DELAY 400
 #define DEBOUNCE_DELAY 10
 
 bool serialState = 1;
@@ -97,7 +97,7 @@ void writerReady() {
     pullUp();
 
     //2) Wait for reader to pull down for one full delay
-    sleep_us(DEBOUNCE_DELAY);
+    //sleep_us(DEBOUNCE_DELAY);
     while(read()) {}
     // for (uint8_t i = 0; i < SERIAL_DELAY * 100000; i++) {
     //     if (!read()) break;
@@ -143,6 +143,7 @@ void serialWriteByte(uint8_t data, uint8_t bit) {
     delayFull();
 
     low();  // sync_send() / senc_recv() need raise edge
+    delayFull();
     serialDebug();
 }
 
@@ -150,35 +151,40 @@ void serialWriteByte(uint8_t data, uint8_t bit) {
 // Reader
 //
 void readerReady() {
-    sleep_us(DEBOUNCE_DELAY);
+    //sleep_us(DEBOUNCE_DELAY);
 
     while(!read()) {}  //1) wait for writer to float to high for ready  TODO: Timeout abort
-    serialDebug();
 
-    sleep_us(DEBOUNCE_DELAY);
 
+    //sleep_us(DEBOUNCE_DELAY);
+    
     
     //2) Immediately pull low for full delay to ack
+    serialDebug();
     modeWrite();
     low();
-
     delayFull();
+    serialDebug();
     
-    //3) Float high for one delay
+    //3) Float high.  Wait half delay to get ready for sync
     modeRead();
     pullUp();
-    sleep_us(DEBOUNCE_DELAY);
+
+    //sleep_us(DEBOUNCE_DELAY);
     
     serialSyncReceive();
 }
 
 void serialSyncReceive(void) {
     //4) Wait for low pull then wait 1 delay to get timing right
-    for (uint8_t i = 0; i < SERIAL_DELAY * 5 && read(); i++) {
+    for (uint8_t i = 0; i < SERIAL_DELAY * 50 && read(); i++) {
+        // will exit if read==0 OR SERIAL_DELAY * 5 iterations
     }
     // This shouldn't hang if the target disconnects because the
     // serial line will float to high if the target does disconnect.
     while (!read()) {}
+    
+    //serialDebug();
 }
 
 uint8_t serialReadByte(uint8_t bit) {
@@ -199,7 +205,7 @@ uint8_t serialReadByte(uint8_t bit) {
     /* recive parity bit */
     delayHalf();  // read the middle of pulses
     pb = read();
-    serialDebug();
+    //serialDebug();
     delayHalf();
 
     return byte;

@@ -17,6 +17,8 @@ add_executable(rkf
         serial.cpp
         animation.h
         animation.cpp
+        proto_test.h
+        proto_test.cpp
     ) 
 
 include("${CMAKE_CURRENT_LIST_DIR}/../libraries/core/rgb/rgb.cmake")

@@ -7,7 +7,7 @@
 #include "rgb_matrix.h"
 #include "helpers.h"
 #include "serial.h"
-//#include "serial_1wire.h"
+#include "proto_test.h"
 
 
 // Local stuff
@@ -34,6 +34,8 @@ bool IS_USB_CONNECTED;  // Detect USB
 bool IS_LEADER;         // aka "Master"
 bool IS_FOLLOWER;       // aka "Slave"
 uint serialSM;          // Serial state machine for 1wire
+
+
 
 int main() {
     
@@ -91,14 +93,13 @@ int main() {
 
     while (true) {
         matrixScan();
-
+        countTest();
         if (!IS_LEADER) {
             #ifndef DEBUG_MODE
                 hid_task();
                 tud_task();
             #endif
-            writerReady();
-            serialWriteByte(170, 8);
+            
             // uint8_t data[2] = {100};
             // serialReadBytes(serialSM, data, 2);
             // if (data[0] != 0) {
@@ -106,16 +107,8 @@ int main() {
             //     printString(data, 2);
             //     printf("\n");
             // }
-            //sleep_us(100);
         }
         if (!IS_FOLLOWER) {
-            readerReady();
-            uint8_t c=serialReadByte(8);
-            printf ("%d\n", c);
-            
-
-            //uint8_t data[2] = {255,254};
-            //serialWriteBytes(serialSM, data, 2);
         }
 
         // Generate Animation
