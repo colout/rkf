@@ -35,3 +35,12 @@ code -–install-extension marus25.cortex-debug
 code -–install-extension ms-vscode.cmake-tools
 code -–install-extension ms-vscode.cpptools
 ```
+
+# Serial
+1. Leader read mode with pullup.  Follower write mode pulled down.
+
+2.  Leader waits for follower to go to read mode with pullup.  When ready, follower gopes to read mode with pull up.
+
+3.  Leader executes send sync.
+
+4.  Leader returns to float.  Follower returns to ground

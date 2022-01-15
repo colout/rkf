@@ -64,10 +64,10 @@ void serialDebug() {
 }
 
 void serialLeaderInit() {
+    //1) Leader read mode with pullup
     gpio_init(DATA_PIN);
-    modeWrite();
-    gpio_disable_pulls(DATA_PIN);
-    low();
+    modeRead();
+    pullUp();
 
     gpio_init(DEBUG_PIN);
     gpio_set_dir(DEBUG_PIN, GPIO_IN);
@@ -76,9 +76,12 @@ void serialLeaderInit() {
 }
 
 void serialFollowerInit() {
+    //1) Follower write mode pulled down
     gpio_init(DATA_PIN);
-    modeRead();
-    gpio_pull_up(DATA_PIN);
+    modeWrite();
+    pullFloat();
+    low();
+    sleep_us(3000);
 
     gpio_init(DEBUG_PIN);
     gpio_set_dir(DEBUG_PIN, GPIO_IN);
@@ -90,28 +93,23 @@ void serialFollowerInit() {
 // Writer
 //
 
-void writerReady() {
+void leaderReady() {
 
-    //1) High means ready to send
+    //2) Read mode while waiting for follower to release the wire from ground
     modeRead();
     pullUp();
+    while(!read()) {} //TODO: Timeout abort
 
-    //2) Wait for reader to pull down for one full delay
-    //sleep_us(DEBOUNCE_DELAY);
-    while(read()) {}
-    // for (uint8_t i = 0; i < SERIAL_DELAY * 100000; i++) {
-    //     if (!read()) break;
-    // }
-
+    //2.5) Create rising edge (write mode)
     serialDebug();
-    delayFull();
-    
-    //3) High for a delay
     modeWrite();
     pullFloat();
     high();
     delayFull();
-    serialSyncSend();
+    
+    //3) Sync
+    serialSyncSend();    
+    
 }
 
 void serialSyncSend() {
@@ -142,35 +140,25 @@ void serialWriteByte(uint8_t data, uint8_t bit) {
     }
     delayFull();
 
-    low();  // sync_send() / senc_recv() need raise edge
+    //low();  // sync_send() / senc_recv() need raise edge
+
     delayFull();
-    serialDebug();
+    //serialDebug();
 }
 
 //
 // Reader
 //
-void readerReady() {
-    //sleep_us(DEBOUNCE_DELAY);
-
-    while(!read()) {}  //1) wait for writer to float to high for ready  TODO: Timeout abort
-
-
-    //sleep_us(DEBOUNCE_DELAY);
-    
-    
-    //2) Immediately pull low for full delay to ack
-    serialDebug();
-    modeWrite();
-    low();
-    delayFull();
-    serialDebug();
-    
-    //3) Float high.  Wait half delay to get ready for sync
+void followerReady() {
+    //1) Ready, so release from ground
     modeRead();
     pullUp();
-
-    //sleep_us(DEBOUNCE_DELAY);
+    serialDebug();
+    
+    //2) Wait for pull to ground
+    delayHalf();
+    while (read()) {}
+    
     
     serialSyncReceive();
 }
