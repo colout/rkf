@@ -100,12 +100,10 @@ void leaderReady() {
     pullUp();
     while(!read()) {} //TODO: Timeout abort
 
-    //2.5) Create rising edge (write mode)
+    //2.5) Write mode before sync
     serialDebug();
     modeWrite();
     pullFloat();
-    high();
-    delayFull();
     
     //3) Sync
     serialSyncSend();    
@@ -113,10 +111,11 @@ void leaderReady() {
 }
 
 void serialSyncSend() {
-    //4) Pull low for one delay for reader to get timing
+    //4) Pull high for 1 delay low for 1 delay for reader to get timing from falling edge
+    high();
+    delayFull();
     low();
     delayFull();
-    high();
 }
 
 
@@ -156,21 +155,16 @@ void followerReady() {
     serialDebug();
     
     //2) Wait for pull to ground
-    delayHalf();
-    while (read()) {}
     
     
     serialSyncReceive();
 }
 
 void serialSyncReceive(void) {
-    //4) Wait for low pull then wait 1 delay to get timing right
-    for (uint8_t i = 0; i < SERIAL_DELAY * 50 && read(); i++) {
-        // will exit if read==0 OR SERIAL_DELAY * 5 iterations
-    }
-    // This shouldn't hang if the target disconnects because the
-    // serial line will float to high if the target does disconnect.
-    while (!read()) {}
+    //4) Wait for low pull's falling edge then wait 1 delay to get timing right
+    while (read()) {}
+    delayFull();
+    delayFull();
     
     //serialDebug();
 }
