@@ -4,14 +4,20 @@
 #include "helpers.h"
 #include "hardware/sync.h"
 
-// Quick code  for inerrupt handling
+
+ // For troubleshootingg / testing
+#include "rgb_matrix.h"
 
 
+// Parity
 #define ODD_PARITY 1
 #define EVEN_PARITY 0
 #define PARITY EVEN_PARITY
 
-// 6 when using serial debug. 4 if not (experimental)
+// 6us per bit == 166.67 kbits/s ==  166.67 bits/ms
+// assuming 12 bits per byte (including overhead), 13.89 bytes/ms
+// There is also ready-setup time and direction switch overhead, which should be less than a byte each:
+//  TODO: add accurate calculation here
 #define SERIAL_DELAY 6
 
 bool serialState = 1;
@@ -20,6 +26,8 @@ bool serialState = 1;
 // Private declarations
 static inline void serialSyncSend();
 static inline void serialSyncReceive();
+static inline void switchToWriter();
+static inline void switchToReader();
 
 // Accurate Delay.
 //  Usage: 
@@ -80,7 +88,7 @@ static inline void pullFloat() {
 
 
 static inline void serialDebug() {
-//#define ENABLE_SERIAL_DEBUG
+#define ENABLE_SERIAL_DEBUG
 #ifdef ENABLE_SERIAL_DEBUG
     serialState=!serialState;
     if (serialState) gpio_pull_up(DEBUG_PIN);
@@ -91,12 +99,12 @@ static inline void serialDebug() {
 void serialLeaderInit() {
     //1) Leader read mode with pullup
     gpio_init(DATA_PIN);
-    modeRead();
-    high();
-    pullUp();
+    switchToWriter();
 
     gpio_init(DEBUG_PIN);
     gpio_set_dir(DEBUG_PIN, GPIO_IN);
+    
+    //while (read()) {} // leader will likely come online first, so follower will be floating.  wait until pulled down for first time
     
     serialDebug();  // first run will set to 0
 }
@@ -104,10 +112,7 @@ void serialLeaderInit() {
 void serialFollowerInit() {
     //1) Follower write mode pulled down
     gpio_init(DATA_PIN);
-    modeWrite();
-    pullFloat();
-    low();
-    sleep_us(3000);
+    switchToReader();
 
     gpio_init(DEBUG_PIN);
     gpio_set_dir(DEBUG_PIN, GPIO_IN);
@@ -115,9 +120,25 @@ void serialFollowerInit() {
     serialDebug();  // first run will set to 0
 }
 
+static inline void switchToWriter() {
+    modeRead();
+    high();
+    pullUp();
+    delayFull();
+}
+
+static inline void switchToReader() {
+    modeWrite();
+    pullFloat();
+    low();
+    delayFull();
+}
+
+
 //
 // Writer
 //
+
 
 static inline void leaderReady() {
     //2) Read mode while waiting for follower to release the wire from ground
@@ -128,10 +149,7 @@ static inline void leaderReady() {
 
     modeWrite();
     pullFloat();
-    serialDebug();
-    
-    //3) Sync
-    serialSyncSend();
+    //serialDebug();
 }
 
 static inline void serialSyncSend() {
@@ -165,8 +183,20 @@ static inline void serialWriteByte(uint8_t data, uint8_t bit) {
 
     //low();  // sync_send() / senc_recv() need raise edge
 
+    high();  // Need high for sync
+
     delayFull();
     //serialDebug();
+}
+
+
+static void serialWritePacket(uint8_t *buffer, uint8_t size) {
+    for (uint8_t i = 0; i < size; ++i) {
+        uint8_t data;
+        data = buffer[i];
+        serialSyncSend();
+        serialWriteByte(data, 8);
+    }
 }
 
 //
@@ -174,10 +204,10 @@ static inline void serialWriteByte(uint8_t data, uint8_t bit) {
 //
 static inline void followerReady() {
     //1) Ready, so release from ground
-    serialDebug();
+    //serialDebug();
     modeRead();
     pullUp();
-    serialSyncReceive();
+    //serialSyncReceive();
 }
 
 static inline void serialSyncReceive(void) {
@@ -218,6 +248,18 @@ static inline uint8_t serialReadByte(uint8_t bit)  {
     return byte;
 }
 
+static void serialReadPacket(uint8_t *buffer, uint8_t size) {
+    for (uint8_t i = 0; i < size; ++i) {
+        uint8_t data;
+        serialSyncReceive();
+        data      = serialReadByte(8);
+        buffer[i] = data;
+    }
+}
+
+
+
+
 
 
 
@@ -236,54 +278,50 @@ uint8_t a=0;
 uint8_t this_num=0;
 uint8_t last_num=0;
 
+uint8_t dataSize = 255;
+uint8_t sendData[255];
+uint8_t revieveData[255] = {0};
+
+bool isRedAlert = false;
+
 void countTest() {
+    
+
+    //printf(".");
+    for (uint8_t i=0; i<dataSize; i++) {
+        sendData[i] = i;
+    }
+
     if (!IS_LEADER) {
 
-        //a=170;
 
         // Serial stuff.  Move to serial.cpp
         DISABLE_INTERUPTS;
         leaderReady();
-        serialWriteByte(a, 8);
+        serialWritePacket(sendData, dataSize);
         ENABLE_INTERUPTS;
-        serialLeaderInit();
+        switchToWriter();
 
-        a++;
-
-        sleep_us(1000);
+        //sleep_us(1000);
     }
     if (!IS_FOLLOWER) {
-        uint8_t c;
-        //a=170;
 
         // Serial stuff
         DISABLE_INTERUPTS;
         followerReady();
-        c=serialReadByte(8);
+        serialReadPacket(revieveData, dataSize);
         ENABLE_INTERUPTS;
-        serialFollowerInit();
-
-        sleep_us(1000);
-
-        if (c==0 && this_num==255 && last_num==254) {
-            printf ("\ncount restarted.  re-syncing\n");
-            a=0;
+        switchToReader();
+        //sleep_us(1000);
+        
+        // The check
+        for (uint8_t i=0; i<dataSize; i++) {
+            if (revieveData[i] != sendData[i]) {
+                printf ("Failed at %d.  Expected %d recieved %d\n", i, sendData[i], revieveData[i]);
+                isAlertState=true;
+            }
         }
-        if (c!=a) {
-            printf("error at %d. received %d\n", a, c);
-            printf("bits: \n");
-            printBits(sizeof(a), &a);
-            printf(" vs \n");
-            printBits(sizeof(c), &c);
-            printf("\n");
-
-            gpio_pull_up(D0);
-            sleep_us(500);
-        }
-            gpio_pull_down(D0);
-        last_num=this_num;
-        this_num=c;
-        a++;
-        //printf ("%d\n", c);
     }
+
+
 }

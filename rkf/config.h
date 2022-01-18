@@ -9,6 +9,9 @@ extern bool IS_LEADER;         // aka "Master"
 extern bool IS_FOLLOWER;       // aka "Slave"
 extern uint serialSM;          // Serial state machine for 1wire
 
+// For alert debugging
+extern bool isAlertState;
+
 // Timeout to wait for usb connect
 #define LEADER_DETECT_TIMEOUT_MS 5000
 

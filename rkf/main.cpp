@@ -34,7 +34,8 @@ bool IS_LEADER;         // aka "Master"
 bool IS_FOLLOWER;       // aka "Slave"
 uint serialSM;          // Serial state machine for 1wire
 
-
+// For alert debugging
+bool isAlertState = false;
 
 int main() {
     
@@ -76,7 +77,7 @@ int main() {
     matrixInit();
     
     printf ("Initializing RGB...\n");
-    //rgbMatrix.initializeRGB(LED_PIN, RGBLED_NUM, false, RGBLIGHT_LIMIT_VAL);
+    rgbMatrix.initializeRGB(LED_PIN, RGBLED_NUM, false, RGBLIGHT_LIMIT_VAL);
     sleep_ms(100);
     
     printf ("Initializing Serial State\n");
@@ -89,10 +90,10 @@ int main() {
     bool drawLEDsNextFrame = false;
 
     absolute_time_t timerAnimateRGB = make_timeout_time_ms(TIME_BETWEEN_ANIMATE_RGB);
+    absolute_time_t timerAlertTimeout = make_timeout_time_ms(1000); // Alert ignored before 1sec
 
     while (true) {
         matrixScan();
-        countTest();
         if (!IS_LEADER) {
             #ifndef DEBUG_MODE
                 hid_task();
@@ -112,14 +113,23 @@ int main() {
 
         // Generate Animation
         if (time_reached(timerAnimateRGB)) {
-            //animateBreathe(&rgbMatrix);
+            if (!time_reached(timerAlertTimeout)) isAlertState = false; // Alert ignored before 1sec
+            if (isAlertState) {
+                RGB c = {255,0,0};
+                rgbMatrix.setAll(c);
+            } else {
+                animateBreathe(&rgbMatrix);
+            }
+            
             timerAnimateRGB = make_timeout_time_ms(TIME_BETWEEN_ANIMATE_RGB);
             drawLEDsNextFrame = true;
 
         // Draw animation
         } else if (drawLEDsNextFrame) {
-            //rgbMatrix.draw();
+            rgbMatrix.draw();
             drawLEDsNextFrame = false;
+        } else {
+            countTest();  // Can't be same loop as LED stuff for some reason?  Sounds reasonble tho
         }
     }
     return 0;
