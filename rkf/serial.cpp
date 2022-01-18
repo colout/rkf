@@ -26,8 +26,12 @@ bool serialState = 1;
 // Private declarations
 static inline void serialSyncSend();
 static inline void serialSyncReceive();
-static inline void switchToWriter();
+static inline void readerReady();
+static inline void writerReady();
 static inline void switchToReader();
+static inline void switchToWriter();
+void sendCheckPacketInLoop();
+bool waitForCheckPacket();
 
 // Accurate Delay.
 //  Usage: 
@@ -109,6 +113,13 @@ void serialLeaderInit() {
     serialDebug();  // first run will set to 0
 }
 
+static inline void switchToWriter() {
+    modeRead();
+    high();
+    pullUp();
+    delayFull();
+}
+
 void serialFollowerInit() {
     //1) Follower write mode pulled down
     gpio_init(DATA_PIN);
@@ -120,13 +131,6 @@ void serialFollowerInit() {
     serialDebug();  // first run will set to 0
 }
 
-static inline void switchToWriter() {
-    modeRead();
-    high();
-    pullUp();
-    delayFull();
-}
-
 static inline void switchToReader() {
     modeWrite();
     pullFloat();
@@ -134,23 +138,26 @@ static inline void switchToReader() {
     delayFull();
 }
 
-
 //
 // Writer
 //
-
-
 static inline void leaderReady() {
     //2) Read mode while waiting for follower to release the wire from ground
     while(!read()) {} //TODO: Timeout abort
 
     //2.5) Write mode before sync
-    delayFull();    // For testng delay between follower and leader.  Not necessary. Delete this
+    delayFull();    // For testng delay between follower and leader.  probably not necessary. Delete this
 
-    modeWrite();
-    pullFloat();
+    writerReady();
     //serialDebug();
 }
+
+static inline void writerReady() {
+    //serialDebug();
+    modeWrite();
+    pullFloat();
+}
+
 
 static inline void serialSyncSend() {
     //4) Pull high for 1 delay low for 1 delay for reader to get timing from falling edge
@@ -203,6 +210,10 @@ static void serialWritePacket(uint8_t *buffer, uint8_t size) {
 // Reader
 //
 static inline void followerReady() {
+    readerReady();
+}
+
+static inline void readerReady() {
     //1) Ready, so release from ground
     //serialDebug();
     modeRead();
@@ -219,9 +230,9 @@ static inline void serialSyncReceive(void) {
 
     // Wait for pull low
     syncTimeoutTimer = make_timeout_time_us(SERIAL_DELAY);
-    while (!time_reached(syncTimeoutTimer) || read()) {}
+    while (!time_reached(syncTimeoutTimer) || read()) {}  // Timeout to avoid race conditions
 
-    serialDebug();
+    //serialDebug();
     delayFull();
 }
 
@@ -237,13 +248,14 @@ static inline uint8_t serialReadByte(uint8_t bit)  {
             byte = (byte << 1) | 0;
             p ^= 0;
         }
-        serialDebug();
+        //serialDebug();
         delayHalf();
     }
+
     /* recive parity bit */
     delayHalf();  // read the middle of pulses
     pb = read();
-    serialDebug();
+    //serialDebug();
     delayHalf();
     return byte;
 }
@@ -278,50 +290,54 @@ uint8_t a=0;
 uint8_t this_num=0;
 uint8_t last_num=0;
 
-uint8_t dataSize = 255;
-uint8_t sendData[255];
-uint8_t revieveData[255] = {0};
+uint8_t dataSize = 2;
+uint8_t sendData[2];
+uint8_t revieveData[2] = {0};
 
 bool isRedAlert = false;
 
-void countTest() {
-    
 
-    //printf(".");
+
+void countTest() {
+    printf(".");
     for (uint8_t i=0; i<dataSize; i++) {
         sendData[i] = i;
     }
 
     if (!IS_LEADER) {
-
-
         // Serial stuff.  Move to serial.cpp
         DISABLE_INTERUPTS;
+        serialDebug();
         leaderReady();
         serialWritePacket(sendData, dataSize);
-        ENABLE_INTERUPTS;
+        serialDebug();
+
+        readerReady();
+        serialReadPacket(revieveData, dataSize);
         switchToWriter();
-
-        //sleep_us(1000);
+        ENABLE_INTERUPTS;
     }
+    
     if (!IS_FOLLOWER) {
-
         // Serial stuff
         DISABLE_INTERUPTS;
+        serialDebug();
         followerReady();
         serialReadPacket(revieveData, dataSize);
-        ENABLE_INTERUPTS;
+        serialDebug();
+
+        writerReady();
+        serialWritePacket(sendData, dataSize);
         switchToReader();
-        //sleep_us(1000);
+        ENABLE_INTERUPTS;
         
-        // The check
-        for (uint8_t i=0; i<dataSize; i++) {
-            if (revieveData[i] != sendData[i]) {
-                printf ("Failed at %d.  Expected %d recieved %d\n", i, sendData[i], revieveData[i]);
-                isAlertState=true;
-            }
-        }
     }
 
-
+    // The check
+    for (uint8_t i=0; i<dataSize; i++) {
+        if (revieveData[i] != sendData[i]) {
+            printf ("Failed at %d.  Expected %d recieved %d\n", i, sendData[i], revieveData[i]);
+            isAlertState=true;
+        }
+    }
 }

@@ -65,7 +65,7 @@ int main() {
         absolute_time_t timerUSBInitEndTime = make_timeout_time_ms(LEADER_DETECT_TIMEOUT_MS);
         while (!time_reached(timerUSBInitEndTime)) {
             IS_USB_CONNECTED = stdio_usb_connected();
-            if (IS_USB_CONNECTED) break;
+            //if (IS_USB_CONNECTED) break;
         }
     #endif
 

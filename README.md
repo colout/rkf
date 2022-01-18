@@ -37,9 +37,21 @@ code -–install-extension ms-vscode.cpptools
 ```
 
 # Serial
-1. Leader read mode with pullup.  Follower write mode pulled down.
+Each number happens within one delay time.
 
-2.  Leader waits for follower to go to read mode with pullup.  When ready, follower gopes to read mode with pull up.
+## Initial state
+1. Initial state: Leader is writer (read mode with pullup).  Follower is reader (write mode pulled down), then wait 1 delay.  Pulled down reader means "not ready"
+
+2. Non-serial things can be executed at this point since follower isn't ready.
+
+## Sending data half duplex across the wire
+1. When writer (leader) is ready, it infinitely checks if line is pulled high.  If the line is pulled high, writer waits 1 delay. (TODO: time out). 
+When reader (follower) is ready, switch to read mode and pull up to signal ready.  Then start sync by waiting line high (in case of slowe skew) for up to 1/2 delay.  
+
+2. Reader waits until falling edge when pulled low (should be 1 delay from previous step).  Then wait one more delay.
+Writer
+
+3. For each byte in buffer, leader (as writer) initiates sync by re
 
 3.  Leader executes send sync.
 
