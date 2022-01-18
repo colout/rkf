@@ -7,7 +7,6 @@
 #include "rgb_matrix.h"
 #include "helpers.h"
 #include "serial.h"
-#include "proto_test.h"
 
 
 // Local stuff
