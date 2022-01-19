@@ -40,19 +40,75 @@ code -–install-extension ms-vscode.cpptools
 Each number happens within one delay time.
 
 ## Initial state
-1. Initial state: Leader is writer (read mode with pullup).  Follower is reader (write mode pulled down), then wait 1 delay.  Pulled down reader means "not ready"
+1. Initial state (1 wait unit): 
+    - **Leader** is `writer` (read mode with pullup).  
+    - **Follower** is `reader` (write mode pulled down), then wait 1 delay.  Pulled down reader means "not ready"
 
-2. Non-serial things can be executed at this point since follower isn't ready.
+2. Non-serial things can be executed at this point since follower isn't ready (as long as you want.  The other side will wait for you):
 
-## Sending data half duplex across the wire
-1. When writer (leader) is ready, it infinitely checks if line is pulled high.  If the line is pulled high, writer waits 1 delay. (TODO: time out). 
-When reader (follower) is ready, switch to read mode and pull up to signal ready.  Then start sync by waiting line high (in case of slowe skew) for up to 1/2 delay.  
+## Sending data across the wire
+1. The ready stage (1 wait unit):
+    - `writer` (**leader**) 
+        - When ready, the `writer` infinitely checks if line is pulled high.  
+        - If the line is pulled high, `writer` waits 1 delay before starting the sync. (TODO: time out). 
+    - `reader` (**follower**)
+        - When ready, the `reader` switches to read mode and pulls-up to high.  High signals that the `reader` is ready to start the sync.
+        - Then start sync by waiting line high (in case of slowe skew) for up to 1/2 delay.  
+        - The `reader` waits until falling edge of the `writer` pulling low in the next step.
 
-2. Reader waits until falling edge when pulled low (should be 1 delay from previous step).  Then wait one more delay.
-Writer
+2. The sync stage (1 wait unit):
+    - `writer` (**leader**) 
+        - The `writer` pulls low then waits for 1 delay.
+    - `reader` (**follower**)    
+        - After the previous step's wait for the falling edge, the two sides should be in perfect sync.  
+        - The `reader` waits one delay unit.
 
-3. For each byte in buffer, leader (as writer) initiates sync by re
+3.  Start sending the next byte + parity (9 wait unit):
+    - `writer` (**leader**) 
+        - For each bit:
+            - Set high for 1, low for 0.
+            - Calculate parity
+            - 1 delay
+        - Send parity
+        - Delay full
+    - `reader` (**follower**)    
+        - For each bit:
+            - Delay half
+            - Read bit
+            - Calculate parity
+            - Delay half
+        - Delay half
+        - Read parity
+        - Delay half
 
-3.  Leader executes send sync.
+4.  Ready for next byte (1 full wait):
+    - `writer` (**leader**) 
+        - Pull high and wait 1 delay
+        - Then repeat step 2,3 for all bytes.
+    - `reader` (**follower**)
+        - Do nothing
 
-4.  Leader returns to float.  Follower returns to ground
+5.  Swap roles (1 full wait):
+    - `leader` (**writer**) switches to reader
+        - Write mode. Pull low.
+        - Delay full
+    - `follower` (**reader**) switches to writer
+        - Read mode, pulled-up high.
+        - Delay full
+
+6.  Lighter-weight ready mode
+    - `leader` (**reader**) 
+        - read mode, pull up
+    - `follower` (**writer**) 
+        - write mode, let it float
+7. Repeat steps 2-4 with the roles reversed.
+8. Switch back to original roles:
+    - `leader` (**reader**) switches to writer
+        - write mode
+        - pull low
+        - delay 1
+    - `follower` (**writer**) switches to reader
+        - read mode
+        - pull high
+        - delay 1
+
