@@ -24,12 +24,12 @@ bool serialState = 1;
 
 
 // Private declarations
-static inline void serialSyncSend();
-static inline void serialSyncReceive();
-static inline void readerReady();
-static inline void writerReady();
-static inline void switchToReader();
-static inline void switchToWriter();
+static volatile void serialSyncSend();
+static volatile void serialSyncReceive();
+static void readerReady();
+static void writerReady();
+static void switchToReader();
+static void switchToWriter();
 void sendCheckPacketInLoop();
 bool waitForCheckPacket();
 
@@ -47,7 +47,7 @@ template<> struct Nops<0>{ static inline void generate(){} };
 
 
 
-static inline void high() {
+static inline volitile void high() {
     gpio_put(DATA_PIN, true);
 }
 
@@ -57,10 +57,14 @@ static inline void low() {
 
 static inline void delayHalf() {
     busy_wait_us_32(SERIAL_DELAY / 2);
+    
+    //Nops<500>::generate();
 }
 
 static inline void delayFull() {
     busy_wait_us_32(SERIAL_DELAY);
+    
+    //delayHalf();delayHalf();
 }
 
 static inline bool read() {
@@ -113,7 +117,7 @@ void serialLeaderInit() {
     serialDebug();  // first run will set to 0
 }
 
-static inline void switchToWriter() {
+static void switchToWriter() {
     modeRead();
     high();
     pullUp();
@@ -131,7 +135,7 @@ void serialFollowerInit() {
     serialDebug();  // first run will set to 0
 }
 
-static inline void switchToReader() {
+static void switchToReader() {
     modeWrite();
     pullFloat();
     low();
@@ -141,25 +145,31 @@ static inline void switchToReader() {
 //
 // Writer
 //
-static inline void leaderReady() {
+static bool leaderReady() {
     //2) Read mode while waiting for follower to release the wire from ground
-    while(!read()) {} //TODO: Timeout abort
+    absolute_time_t readyWaitTimeoutTimer = make_timeout_time_us(16000);
+    while (!read()) {
+        if (time_reached(readyWaitTimeoutTimer)) {
+            return 0;
+        }
+    }
 
     //2.5) Write mode before sync
     delayFull();    // For testng delay between follower and leader.  probably not necessary. Delete this
 
     writerReady();
-    //serialDebug();
+
+    return 1;
 }
 
-static inline void writerReady() {
-    //serialDebug();
+static void writerReady() {
+
     modeWrite();
     pullFloat();
 }
 
 
-static inline void serialSyncSend() {
+static volatile void serialSyncSend() {
     //4) Pull high for 1 delay low for 1 delay for reader to get timing from falling edge
     high();
     delayFull();
@@ -168,8 +178,9 @@ static inline void serialSyncSend() {
 }
 
 
-static inline void serialWriteByte(uint8_t data, uint8_t bit) {
+static volatile void serialWriteByte(uint8_t data) {
     uint8_t b, p;
+    const uint8_t bit = 8;
     for (p = PARITY, b = 1 << (bit - 1); b; b >>= 1) {
         if (data & b) {
             high();
@@ -193,35 +204,44 @@ static inline void serialWriteByte(uint8_t data, uint8_t bit) {
     high();  // Need high for sync
 
     delayFull();
-    //serialDebug();
+
 }
 
 
-static void serialWritePacket(uint8_t *buffer, uint8_t size) {
+static volatile void serialWritePacket(uint8_t *buffer, uint8_t size) {
+    
+    serialDebug();
+    serialSyncSend();
+    serialDebug();
+    //Nops<100>::generate();
+    busy_wait_us_32(4);
+    serialWriteByte(size);
+    
+
     for (uint8_t i = 0; i < size; ++i) {
         uint8_t data;
         data = buffer[i];
         serialSyncSend();
-        serialWriteByte(data, 8);
-    }
+        serialWriteByte(data);
+    } 
 }
 
 //
 // Reader
 //
-static inline void followerReady() {
+static void followerReady() {
     readerReady();
 }
 
-static inline void readerReady() {
+static void readerReady() {
     //1) Ready, so release from ground
-    //serialDebug();
+
     modeRead();
     pullUp();
     //serialSyncReceive();
 }
 
-static inline void serialSyncReceive(void) {
+static volatile void serialSyncReceive(void) {
     //2) Wait for low pull's falling edge then wait to get timing right
     
     //First, wait a half delay OR pull high to account for potential slow skew
@@ -232,12 +252,13 @@ static inline void serialSyncReceive(void) {
     syncTimeoutTimer = make_timeout_time_us(SERIAL_DELAY);
     while (!time_reached(syncTimeoutTimer) || read()) {}  // Timeout to avoid race conditions
 
-    //serialDebug();
+
     delayFull();
 }
 
-static inline uint8_t serialReadByte(uint8_t bit)  {
+static volatile uint8_t serialReadByte()  {
     uint8_t byte, i, p, pb;
+    const uint8_t bit = 8;
 
     for (i = 0, byte = 0, p = PARITY; i < bit; i++) {
         delayHalf();  // read the middle of pulses
@@ -248,23 +269,32 @@ static inline uint8_t serialReadByte(uint8_t bit)  {
             byte = (byte << 1) | 0;
             p ^= 0;
         }
-        //serialDebug();
+        serialDebug();
         delayHalf();
     }
 
     /* recive parity bit */
     delayHalf();  // read the middle of pulses
     pb = read();
-    //serialDebug();
+
     delayHalf();
+
+    //if (p != pb) return 0; // Zero when failed parity
     return byte;
 }
 
-static void serialReadPacket(uint8_t *buffer, uint8_t size) {
-    for (uint8_t i = 0; i < size; ++i) {
+static void serialReadPacket(uint8_t *buffer) {
+    int size;  // Not sure why, but many comparisons fail (<,>,!=, etc) if uint8_t
+    //serialDebug();
+    serialSyncReceive();
+    size = serialReadByte();
+
+    //if (size != 2) size = 2;  
+
+    for (int i = 0; i < size; ++i) {
         uint8_t data;
         serialSyncReceive();
-        data      = serialReadByte(8);
+        data = serialReadByte();
         buffer[i] = data;
     }
 }
@@ -295,49 +325,61 @@ uint8_t sendData[2];
 uint8_t revieveData[2] = {0};
 
 bool isRedAlert = false;
-
+uint64_t iterationCount = 0;
 
 
 void countTest() {
-    printf(".");
+    //printf(".");
+    iterationCount++;
+    absolute_time_t t = get_absolute_time();
+
     for (uint8_t i=0; i<dataSize; i++) {
         sendData[i] = i;
     }
 
     if (!IS_LEADER) {
         // Serial stuff.  Move to serial.cpp
+
+
         DISABLE_INTERUPTS;
-        serialDebug();
-        leaderReady();
+        if (!leaderReady()) {
+            switchToWriter();
+            ENABLE_INTERUPTS;
+            return;  // If takes too long to get ready, revert to good state and exit.
+        }
         serialWritePacket(sendData, dataSize);
-        serialDebug();
 
         readerReady();
-        serialReadPacket(revieveData, dataSize);
+        serialReadPacket(revieveData);
         switchToWriter();
         ENABLE_INTERUPTS;
     }
     
     if (!IS_FOLLOWER) {
         // Serial stuff
+
+
         DISABLE_INTERUPTS;
-        serialDebug();
         followerReady();
-        serialReadPacket(revieveData, dataSize);
-        serialDebug();
+        serialReadPacket(revieveData);
+        delayFull(); // There is a delay at end off write, so read will end one tick behind here.  
+        delayFull(); // Probably good to delay some more to give time for other side to get ready.  
 
         writerReady();
+        delayFull(); // Probably good to delay.  
         serialWritePacket(sendData, dataSize);
         switchToReader();
         ENABLE_INTERUPTS;
         
     }
+    //printf(" %jd ",  absolute_time_diff_us(t, get_absolute_time()));
 
     // The check
     for (uint8_t i=0; i<dataSize; i++) {
         if (revieveData[i] != sendData[i]) {
-            printf ("Failed at %d.  Expected %d recieved %d\n", i, sendData[i], revieveData[i]);
+            //printf ("Failed at %d.  Expected %d recieved %d\n", i, sendData[i], revieveData[i]);
             isAlertState=true;
-        }
+            printf("-");
+        } //else printf("+");
     }
 }

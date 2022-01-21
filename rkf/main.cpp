@@ -38,8 +38,6 @@ uint serialSM;          // Serial state machine for 1wire
 bool isAlertState = false;
 
 int main() {
-    
-
     // Init USB and low level stuff first
     #ifndef DEBUG_MODE
         board_init();
@@ -72,7 +70,7 @@ int main() {
     IS_LEADER = IS_USB_CONNECTED;
     IS_FOLLOWER = !IS_USB_CONNECTED;
 
-    printf ("Program starting...\n");
+    printf ("\n\nProgram starting...\n");
 
     matrixInit();
     
@@ -90,7 +88,7 @@ int main() {
     bool drawLEDsNextFrame = false;
 
     absolute_time_t timerAnimateRGB = make_timeout_time_ms(TIME_BETWEEN_ANIMATE_RGB);
-    absolute_time_t timerAlertTimeout = make_timeout_time_ms(1000); // Alert ignored before 1sec
+    absolute_time_t timerAlertTimeout = make_timeout_time_ms(1000); // Alert cleared after 1sec
 
     while (true) {
         matrixScan();
@@ -113,8 +111,11 @@ int main() {
 
         // Generate Animation
         if (time_reached(timerAnimateRGB)) {
-            if (!time_reached(timerAlertTimeout)) isAlertState = false; // Alert ignored before 1sec
             if (isAlertState) {
+                if (time_reached(timerAlertTimeout)) {
+                    isAlertState = false; // Alert ignored before 1sec
+                    timerAlertTimeout = make_timeout_time_ms(1000); // Alert cleared after 1sec
+                }
                 RGB c = {255,0,0};
                 rgbMatrix.setAll(c);
             } else {
@@ -130,7 +131,12 @@ int main() {
             drawLEDsNextFrame = false;
         } else {
             countTest();  // Can't be same loop as LED stuff for some reason?  Sounds reasonble tho
+            if (iterationCount % 10000 == 0) {
+                printf("%lld\n", iterationCount);
+            }
+            sleep_ms(4); //fails without this now
         }
+        
     }
     return 0;
 }

@@ -11,6 +11,7 @@ extern uint serialSM;          // Serial state machine for 1wire
 
 // For alert debugging
 extern bool isAlertState;
+extern uint64_t iterationCount;
 
 // Timeout to wait for usb connect
 #define LEADER_DETECT_TIMEOUT_MS 5000
