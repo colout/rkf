@@ -77,12 +77,16 @@ int main() {
     printf ("Initializing RGB...\n");
     rgbMatrix.initializeRGB(LED_PIN, RGBLED_NUM, false, RGBLIGHT_LIMIT_VAL);
     sleep_ms(100);
-    
+
+    ////////////////////////////////////////////
     printf ("Initializing Serial State\n");
+    
+    
     if (!IS_LEADER) serialLeaderInit();
     if (!IS_FOLLOWER) serialFollowerInit();
-    sleep_ms(100);
 
+    sleep_ms(100);
+    ///////////////////////////////////////////
     printf ("Starting main loop...\n");
 
     bool drawLEDsNextFrame = false;
@@ -130,11 +134,7 @@ int main() {
             rgbMatrix.draw();
             drawLEDsNextFrame = false;
         } else {
-            countTest();  // Can't be same loop as LED stuff for some reason?  Sounds reasonble tho
-            if (iterationCount % 10000 == 0) {
-                printf("%lld\n", iterationCount);
-            }
-            sleep_ms(4); //fails without this now
+            //countTest();  // Can't be same loop as LED stuff for some reason?  Sounds reasonble tho
         }
         
     }

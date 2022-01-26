@@ -13,8 +13,8 @@ add_executable(rkf
 #        tusb_config.h
 #        hid.c
 #        hid.h
-        serial.h
-        serial.cpp
+#        serial.h
+#        serial.cpp
         animation.h
         animation.cpp
         proto_test.h
@@ -23,7 +23,7 @@ add_executable(rkf
 
 include("${CMAKE_CURRENT_LIST_DIR}/../libraries/core/rgb/rgb.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/../libraries/core/helpers/helpers.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/../libraries/core/serial_1wire/serial_1wire.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/../libraries/core/serial/serial.cmake")
 
 pico_enable_stdio_usb(rkf 1)
 pico_enable_stdio_uart(rkf 0)
@@ -34,7 +34,7 @@ target_link_libraries(rkf
 #        tinyusb_board
         helpers 
         rgb 
-        serial_1wire
+        serial
         pico_bootsel_via_double_reset
     )
 

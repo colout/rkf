@@ -1,7 +1,9 @@
 #include "pico/stdlib.h"
-#include "hardware/gpio.h"
-#include "serial_1wire.pio.h"
+#include "hardware/pio.h"
+
+void serialLeaderInit();
+void serialFollowerInit();
 
 void serialWriteBytes(uint sm, uint8_t bytes[], int len);
 void serialReadBytes(uint sm, uint8_t bytes[], int len);
-uint serial_1wireInitalize(PIO p, int gpio);
+uint serialInitalize(PIO p, int gpio);
