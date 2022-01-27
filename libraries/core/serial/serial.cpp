@@ -77,17 +77,8 @@ void serialInitSettings(PIO pio, uint sm, uint pin, uint debug_pin, float pio_fr
 
     float div = (float)clock_get_hz(clk_sys) / pio_freq;
  
-
-    switch (isLeader) {
-        case true:
-            offset = pio_add_program(pio, &serialLeader_program);
-            c = serialLeader_program_get_default_config(offset);
-            break;
-        case false:
-            offset = pio_add_program(pio, &serialFollower_program);
-            c = serialFollower_program_get_default_config(offset);
-            break;
-    }
+    offset = pio_add_program(pio, &serial_program);
+    c = serial_program_get_default_config(offset);
    
     // Serial pin
     gpio_pull_up(pin);
@@ -109,8 +100,10 @@ void serialInitSettings(PIO pio, uint sm, uint pin, uint debug_pin, float pio_fr
     
     // Clock config
     sm_config_set_clkdiv(&c, div);
-    pio_sm_init(pio, sm, offset, &c);
 
+    // Start
+    //if (!isLeader) while (read());  //  will pull down before starting. TODO: Timeout in case started much later
+    pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_enabled(pio, sm, true);
 }
 
@@ -125,7 +118,6 @@ void serialLeaderInit() {
     // Do nothing
     while (true) {
         sleep_ms(100);
-
         pio_sm_put_blocking(pio, sm, 1);
         pio_sm_put_blocking(pio, sm, 170);
     }
@@ -138,6 +130,7 @@ void serialFollowerInit() {
 
     // Do nothing
     while (true) {
+        pio_sm_put_blocking(pio, sm, 0);
         uint8_t data = pio_sm_get_blocking(pio, sm) >> 24;
 
         printf ("\nData: %d\n", data);

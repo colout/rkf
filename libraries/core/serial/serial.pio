@@ -1,10 +1,13 @@
-.program serialLeader
+.program serial
 .side_set 1 opt
 
 .wrap_target
 init:
-    nop                     [0] ; Step 0: Writer mode (read with pullup)
-start_byte_string:
+    pull block              [0]
+    mov y, OSR              [0] ; y == 0 is read.  y > 0 is write that many bytes
+    jmp !y, read            [0]
+write:
+write_start_byte_string:
     pull block    side 1    [0]
     mov y, OSR    side 0    [0]
 
@@ -19,32 +22,26 @@ write_one_byte_prepare:
 write_one_byte_loop:
     out pins, 1             [1] ; Step 3: For each bit(8 total), set pin direction to hi/lo for 1u
     jmp x-- write_one_byte_loop [1]
-pause_after_byte:
-    set pindirs, 0          [0] ; Step 4: Wait for 1u.  Reader will pull down before 1u is over
-    nop                     [2]
-    jmp x-- start_byte_string [1]
-.wrap
+write_pause_after_byte:
+    set pindirs, 0          [3] ; Step 4: Wait for 1u.  Reader will pull down before 1u is over
+    jmp x-- write_start_byte_string [1]
+    jmp init                [0]
 
-
-
-.program serialFollower
-.side_set 1 opt
-
-.wrap_target
-init:
+;
+; Read
+;
+read:
     set pindirs, 0          [0] ; Step 1: Float to high to indicate "ready"
-
-start_byte_string:
+read_start_byte_string:
     wait 1 pin 0     side 1 [0] ;         Leader will float for a while, but then push high for 1u
     wait 0 pin 0     side 0 [0] ; Step 2: Leader pulls to ground for 1u to announce "ready" and sync timing
     set x, 7                [4] ;   This offsets by half 1u (1.5u total)
 read_loop:
     in pins, 1    side 1    [1] ; Step 3: For each bit(8 total), read halfway through 1u
     jmp x-- read_loop  side 0 [1]
-not_ready:
+read_not_ready:
     set pindirs, 1          [0] ; Step 4: Leader waits for 0.5u, 1u total (already delayed by 0.5u)
     set pins 0              [0]
-    push block              [0] ; Push o tmain program while in "not-ready" mode
-    nop                     [3] ;; Add an extra 1u for safetey
-    
+    push block              [4] ; Push o tmain program while in "not-ready" mode. extra wait for saftey
+
 .wrap
