@@ -88,7 +88,12 @@ uint serialInitSettings(PIO pio, uint sm, uint pin, uint debug_pin, float pio_fr
     sm_config_set_out_pins(&c, pin, 1);
     sm_config_set_set_pins(&c, pin, 1);
     sm_config_set_in_pins(&c, pin);
-    sm_config_set_sideset_pins(&c, pin);  
+    
+    // FOR DEBUG
+    gpio_pull_up(debug_pin);
+    pio_gpio_init(pio, debug_pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, debug_pin, 1, true);
+    sm_config_set_sideset_pins(&c, debug_pin);   // FOR DEBUG
 
     // Shift Register Config
     sm_config_set_in_shift(&c, true, false, 8);
@@ -129,7 +134,7 @@ static inline void serialReadMode(PIO pio, uint sm, uint offset) {
 }
 
 static inline void serialWriteMode(PIO pio, uint sm, uint offset) {
-    uint serial_program_write_start = 11;    // Need to update this when PIO line numbers change
+    uint serial_program_write_start = 12;    // Need to update this when PIO line numbers change
     pio_sm_exec_wait_blocking(pio, sm, pio_encode_jmp(offset + serial_program_write_start));
 }
 
@@ -138,11 +143,13 @@ void serialLeaderInit() {
     uint sm = pio_claim_unused_sm(pio, true);
     uint offset = serialInitSettings(pio, sm, DATA_PIN, DEBUG_PIN, CLOCK_FREQ, true);
 
-    serialWriteMode(pio, sm, offset);   
+    serialWriteMode(pio, sm, offset);
+    
     // Do nothing
     while (true) {
         sleep_ms(100);
-        pio_sm_put_blocking(pio, sm, 1);
+        pio_sm_put_blocking(pio, sm, 2);
+        pio_sm_put_blocking(pio, sm, 170);
         pio_sm_put_blocking(pio, sm, 170);
     }
 }
