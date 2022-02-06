@@ -1,6 +1,63 @@
 .program serial
 .side_set 1 opt
 
+; Slightly more fleshed-out 8n1 UART receiver which handles framing errors and
+; break conditions more gracefully.
+; IN pin 0 and JMP pin are both mapped to the GPIO used as UART RX.
+do_nothing:
+    jmp do_nothing      ; Default action is do nothing
+read_start:
+    set pindirs, 0
+    wait 0 pin 0        ; Stall until start bit is asserted
+    set x, 7    [7]    ; Preload bit counter, then delay until halfway through
+    nop         [2]
+read_bitloop:                ; the first data bit (12 cycles incl wait, set).
+    in pins, 1          ; Shift data bit into ISR
+    jmp x-- read_bitloop [6] ; Loop 8 times, each loop iteration is 8 cycles
+    jmp pin read_good_stop   ; Check stop bit (should be high)
+
+    irq 4 rel           ; Either a framing error or a break. Set a sticky flag,
+    wait 1 pin 0        ; and wait for line to return to idle state.
+    jmp read_start           ; Don't push data if we didn't see good framing.
+
+read_good_stop:              ; No delay before returning to start; a little slack is
+    push block               ; important in case the TX clock is slightly too fast.
+    jmp read_start
+
+leader_ready:            ; Wait until follower pulls line up
+    set pindirs, 0
+    jmp pin write_start [7]  ; Wait after pin float since reader might need time to keep up
+    jmp leader_ready
+write_start:
+    set pindirs, 1
+    pull block     side 1 [7]  ; Assert stop bit, or stall with line in idle state
+    set x, 7   side 0 [7]  ; Preload bit counter, assert start bit for 8 clocks
+write_bitloop:                   ; This loop will run 8 times (8n1 UART)
+    out pins, 1            ; Shift 1 bit from OSR to the first OUT pin
+    jmp x-- write_bitloop   [6]  ; Each loop iteration is 8 cycles.
+    jmp write_start
+
+.program serial_write
+.side_set 1 opt
+
+; An 8n1 UART transmit program.
+; OUT pin 0 and side-set pin 0 are both mapped to UART TX pin.
+
+write_start:
+    set pindirs, 1
+    pull block     side 1 [7]  ; Assert stop bit, or stall with line in idle state
+    set x, 7   side 0 [7]  ; Preload bit counter, assert start bit for 8 clocks
+write_bitloop:                   ; This loop will run 8 times (8n1 UART)
+    out pins, 1            ; Shift 1 bit from OSR to the first OUT pin
+    jmp x-- write_bitloop   [6]  ; Each loop iteration is 8 cycles.
+    jmp write_start
+
+
+
+
+.program serial_old
+.side_set 1 opt
+
 .wrap_target
 init:
     pull block              [0]
