@@ -10,7 +10,7 @@
 
 
 #define SERIAL_DELAY 400
-#define CLOCK_FREQ 2000
+#define CLOCK_FREQ 64000
 
 bool serialState = true;
 
@@ -71,7 +71,7 @@ static inline void pullFloat() {
 }
 
 
-void serialInitSettings(PIO pio, uint sm, uint pin, uint debug_pin, float pio_freq, bool isLeader) {
+uint serialInitSettings(PIO pio, uint sm, uint pin, uint debug_pin, float pio_freq, bool isLeader) {
     pio_sm_config c;
     uint offset;
 
@@ -81,18 +81,14 @@ void serialInitSettings(PIO pio, uint sm, uint pin, uint debug_pin, float pio_fr
     c = serial_program_get_default_config(offset);
    
     // Serial pin
-    gpio_pull_up(pin);
+    //gpio_pull_up(pin);
+    pullUp();
     pio_gpio_init(pio, pin);
     pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
     sm_config_set_out_pins(&c, pin, 1);
     sm_config_set_set_pins(&c, pin, 1);
     sm_config_set_in_pins(&c, pin);
-
-    // FOR DEBUG
-    gpio_pull_up(debug_pin);
-    pio_gpio_init(pio, debug_pin);
-    pio_sm_set_consecutive_pindirs(pio, sm, debug_pin, 1, true);
-    sm_config_set_sideset_pins(&c, debug_pin);   // FOR DEBUG
+    sm_config_set_sideset_pins(&c, pin);  
 
     // Shift Register Config
     sm_config_set_in_shift(&c, true, false, 8);
@@ -105,16 +101,44 @@ void serialInitSettings(PIO pio, uint sm, uint pin, uint debug_pin, float pio_fr
     //if (!isLeader) while (read());  //  will pull down before starting. TODO: Timeout in case started much later
     pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_enabled(pio, sm, true);
+    
+    return offset;
 }
 
 
+static inline void serialWritePacket(PIO pio, uint sm, uint8_t *buffer, uint8_t size) {
+    for (uint8_t i = 0; i < size; ++i) {
+        uint8_t data;
+        data = buffer[i];
+        pio_sm_put_blocking(pio, sm, (uint32_t)data);
+    }
+}
 
+static inline void serialReadPacket(PIO pio, uint sm, uint8_t *buffer, uint8_t size) {
+    for (uint8_t i = 0; i < size; ++i) {
+        uint8_t data;
+        data = pio_sm_get_blocking(pio, sm);
+        buffer[i] = data;
+        //serialDebug();
+    }
+}
+
+static inline void serialReadMode(PIO pio, uint sm, uint offset) {
+    uint serial_program_read_start = 1;    // Need to update this when PIO line numbers change
+    pio_sm_exec_wait_blocking(pio, sm, pio_encode_jmp(offset + serial_program_read_start));
+}
+
+static inline void serialWriteMode(PIO pio, uint sm, uint offset) {
+    uint serial_program_write_start = 11;    // Need to update this when PIO line numbers change
+    pio_sm_exec_wait_blocking(pio, sm, pio_encode_jmp(offset + serial_program_write_start));
+}
 
 void serialLeaderInit() {
     PIO pio = pio0;
     uint sm = pio_claim_unused_sm(pio, true);
-    serialInitSettings(pio, sm, DATA_PIN, DEBUG_PIN, CLOCK_FREQ, true);
+    uint offset = serialInitSettings(pio, sm, DATA_PIN, DEBUG_PIN, CLOCK_FREQ, true);
 
+    serialWriteMode(pio, sm, offset);   
     // Do nothing
     while (true) {
         sleep_ms(100);
@@ -126,11 +150,12 @@ void serialLeaderInit() {
 void serialFollowerInit() {
     PIO pio = pio0;
     uint sm = pio_claim_unused_sm(pio, true);
-    serialInitSettings(pio, sm, DATA_PIN, DEBUG_PIN, CLOCK_FREQ, false);
+    uint offset = serialInitSettings(pio, sm, DATA_PIN, DEBUG_PIN, CLOCK_FREQ, false);
+
+    serialReadMode(pio, sm, offset);
 
     // Do nothing
     while (true) {
-        pio_sm_put_blocking(pio, sm, 0);
         uint8_t data = pio_sm_get_blocking(pio, sm) >> 24;
 
         printf ("\nData: %d\n", data);

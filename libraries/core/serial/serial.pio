@@ -2,30 +2,8 @@
 .side_set 1 opt
 
 .wrap_target
-init:
-    pull block              [0]
-    mov y, OSR              [0] ; y == 0 is read.  y > 0 is write that many bytes
-    jmp !y, read            [0]
-write:
-write_start_byte_string:
-    pull block    side 1    [0]
-    mov y, OSR    side 0    [0]
-
-write_one_byte_prepare:
-    set x, 7                [0]
-    set pins 1              [0] ; Step 1: Ready to write, so check line until high
-    wait 1 pin 0            [0] ;
-    set pindirs, 1   side 1 [0] ;         Once high detected, push high for 1u 
-    set pins, 1             [3]
-    set pins, 0             [3] ; Step 2: Pull to ground for 1u to indicate ready / start sync
-
-write_one_byte_loop:
-    out pins, 1             [1] ; Step 3: For each bit(8 total), set pin direction to hi/lo for 1u
-    jmp x-- write_one_byte_loop [1]
-write_pause_after_byte:
-    set pindirs, 0          [3] ; Step 4: Wait for 1u.  Reader will pull down before 1u is over
-    jmp x-- write_start_byte_string [1]
-    jmp init                [0]
+do_nothing:
+    jmp do_nothing              ; Default action is do nothing
 
 ;
 ; Read
@@ -40,8 +18,29 @@ read_loop:
     in pins, 1    side 1    [1] ; Step 3: For each bit(8 total), read halfway through 1u
     jmp x-- read_loop  side 0 [1]
 read_not_ready:
-    set pindirs, 1          [0] ; Step 4: Leader waits for 0.5u, 1u total (already delayed by 0.5u)
-    set pins 0              [0]
+    nop;set pindirs, 1          [0] ; Step 4: Leader waits for 0.5u, 1u total (already delayed by 0.5u)
+    nop;set pins 0              [0]
     push block              [4] ; Push o tmain program while in "not-ready" mode. extra wait for saftey
+    jmp read                [0]
+
+write:
+write_start_byte_string:
+    pull block    side 1    [0]
+    mov y, OSR    side 0    [0]
+write_one_byte_prepare:
+    set x, 7                [0]
+    set pins 1              [0] ; Step 1: Ready to write, so check line until high
+    wait 1 pin 0            [0] ;
+    set pindirs, 1   side 1 [0] ;         Once high detected, push high for 1u 
+    set pins, 1             [3]
+    set pins, 0             [3] ; Step 2: Pull to ground for 1u to indicate ready / start sync
+
+write_one_byte_loop:
+    out pins, 1             [1] ; Step 3: For each bit(8 total), set pin direction to hi/lo for 1u
+    jmp x-- write_one_byte_loop [1]
+write_pause_after_byte:
+    set pindirs, 0          [3] ; Step 4: Wait for 1u.  
+    jmp x-- write_start_byte_string [1]
+    jmp write                [0]
 
 .wrap
