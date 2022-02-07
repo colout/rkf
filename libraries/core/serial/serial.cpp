@@ -8,7 +8,8 @@
 
 #include "serial.pio.h"
 #include "pico/bit_ops.h"
-
+#include "time.h"
+#include <random>
 
 #define SERIAL_DELAY 400
 #define CLOCK_FREQ 64000
@@ -137,13 +138,14 @@ void serialLeaderInit() {
     PIO pio = pio1;
     uint sm = pio_claim_unused_sm(pio, true);
     uint offset = serialInitSettings(pio, sm, DATA_PIN, DEBUG_PIN, CLOCK_FREQ, true);
-
+    
+    srand (time(NULL));
     serialWriteMode(pio, sm, offset);
         sleep_ms(3000);
     
     // Do nothing
     while (true) {
-        sleep_ms(5);
+        sleep_ms(rand() % 100);
         pio_sm_put_blocking(pio, sm, 2);
         pio_sm_put_blocking(pio, sm, 170);
         pio_sm_put_blocking(pio, sm, 170);
@@ -155,13 +157,14 @@ void serialFollowerInit() {
     
     uint sm = pio_claim_unused_sm(pio, true);
     uint offset = serialInitSettings(pio, sm, DATA_PIN, DEBUG_PIN, CLOCK_FREQ, false);
-
+    
+    srand (time(NULL));
     serialReadMode(pio, sm, offset);
     // Do nothing
     while (true) {
         //uint32_t data = (pio_sm_get_blocking(pio, sm));
         //printf ("\nData: %lu\n", data >> 24);
-        sleep_ms(30);
+        sleep_ms(rand() % 100);
 
         serialReadMode(pio, sm, offset);
 
