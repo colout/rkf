@@ -1,60 +1,57 @@
 .program serial
 .side_set 1 opt
 
-.wrap_target
 ;do_nothing:
 ;    jmp do_nothing           ; Default action is do nothing
 ;
 ; Read
 ;
 read:
-    set pindirs, 0          [0] ; Step 1: Float to high to indicate "ready"
+    set pindirs, 0   [0] ; Step 1: Float to high to indicate "ready"
 read_size_byte:
-    wait 1 pin 0    [0] ;         Leader will float for a while, but then push high for 1u
+    wait 1 pin 0     [0] ;         Leader will float for a while, but then push high for 1u
     wait 0 pin 0     [0] ; Step 2: Leader pulls to ground for 1u to announce "ready" and sync timing
-    set x, 7                [4] ;   This offsets by half 1u (1.5u total)
+    set x, 7         [4] ;   This offsets by half 1u (1.5u total)
 read_size_loop:
-    in pins, 1  side_set 1     [1] ; Step 3: For each bit(8 total), read halfway through 1u
+    in pins, 1       [1] ; Step 3: For each bit(8 total), read halfway through 1u
     jmp x-- read_size_loop [1]
 read_size_not_ready:
     in  NULL, 24
-    mov y,  ISR              [4]
-    push block side_set 0
+    mov y,  ISR      [0]
+    push block 
     jmp y-- read_byte
 
 read_byte:
-    wait 1 pin 0    [0] ;         Leader will float for a while, but then push high for 1u
+    wait 1 pin 0     [0] ;         Leader will float for a while, but then push high for 1u
     wait 0 pin 0     [0] ; Step 2: Leader pulls to ground for 1u to announce "ready" and sync timing
-    set x, 7                [4] ;   This offsets by half 1u (1.5u total)
+    set x, 7         [4] ;   This offsets by half 1u (1.5u total)
 read_one_byte_loop:
     in pins, 1       [1] ; Step 3: For each bit(8 total), read halfway through 1u
     jmp x-- read_one_byte_loop [1]
+    push block       [4] ; Push o tmain program while in "not-ready" mode. extra wait for saftey
+    jmp y-- read_byte [1]
+
 read_not_ready:
-    push block              [4] ; Push o tmain program while in "not-ready" mode. extra wait for saftey
+    set pindirs, 1 side 0 ; Pull low not ready
+    jmp read_size_byte [0]
 
-    jmp y-- read_byte        [1]
-    jmp read_size_byte            [0]
-
-write:
-    pull block              [0]
+.wrap_target
+write_ready:
+    pull block              [7]
+    wait 1 pin 0            [7] ; Follower will float when ready
     mov y, OSR              [0]
 write_length_adder:
     jmp write_one_byte_prepare
 write_byte:
     pull block              [0]
 write_one_byte_prepare:
-    set x, 7                [0]
-    set pins 1              [0] ; Step 1: Ready to write, so check line until high
-    ;wait 1 pin 0            [0] ;
-    set pindirs, 1          [0] ;         Once high detected, push high for 1u 
-    set pins, 1             [3]
-    set pins, 0             [3] ; Step 2: Pull to ground for 1u to indicate ready / start sync
+    set pindirs, 1 side 1   [3]
+    set x, 7     side 0     [3]
 
 write_one_byte_loop:
     out pins, 1             [1] ; Step 3: For each bit(8 total), set pin direction to hi/lo for 1u
     jmp x-- write_one_byte_loop [1]
 write_pause_after_byte:
     set pindirs, 0          [3] ; Step 4: Wait for 1u.  
-    jmp y-- write_byte                [1]
-    jmp write [0]
+    jmp y-- write_byte      [2]
 .wrap

@@ -89,12 +89,7 @@ uint serialInitSettings(PIO pio, uint sm, uint pin, uint debug_pin, float pio_fr
     sm_config_set_out_pins(&c, pin, 1);
     sm_config_set_set_pins(&c, pin, 1);
     sm_config_set_in_pins(&c, pin);
-    
-    // FOR DEBUG
-    gpio_pull_up(debug_pin);
-    pio_gpio_init(pio, debug_pin);
-    pio_sm_set_consecutive_pindirs(pio, sm, debug_pin, 1, true);
-    sm_config_set_sideset_pins(&c, debug_pin);   // FOR DEBUG
+    sm_config_set_sideset_pins(&c, pin);
 
     // Shift Register Config
     sm_config_set_in_shift(&c, true, false, 32);
@@ -134,7 +129,7 @@ static inline void serialReadMode(PIO pio, uint sm, uint offset) {
 }
 
 static inline void serialWriteMode(PIO pio, uint sm, uint offset) {
-    uint offset_serial_program_write_start = 18;    // Need to update this when PIO line numbers change
+    uint offset_serial_program_write_start = 19;    // Need to update this when PIO line numbers change
     pio_sm_exec_wait_blocking(pio, sm, pio_encode_jmp(offset + offset_serial_program_write_start));
 }
 
@@ -148,7 +143,7 @@ void serialLeaderInit() {
     
     // Do nothing
     while (true) {
-        sleep_ms(100);
+        sleep_ms(5);
         pio_sm_put_blocking(pio, sm, 2);
         pio_sm_put_blocking(pio, sm, 170);
         pio_sm_put_blocking(pio, sm, 170);
@@ -166,6 +161,10 @@ void serialFollowerInit() {
     while (true) {
         //uint32_t data = (pio_sm_get_blocking(pio, sm));
         //printf ("\nData: %lu\n", data >> 24);
+        sleep_ms(30);
+
+        serialReadMode(pio, sm, offset);
+
         printf ("\nData: %lu\n", pio_sm_get_blocking(pio, sm));
         printf ("\nData: %lu\n", pio_sm_get_blocking(pio, sm) >> 24);
         printf ("\nData: %lu\n", pio_sm_get_blocking(pio, sm) >> 24);
