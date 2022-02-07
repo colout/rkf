@@ -7,6 +7,7 @@
 #include "hardware/clocks.h"
 
 #include "serial.pio.h"
+#include "pico/bit_ops.h"
 
 
 #define SERIAL_DELAY 400
@@ -96,7 +97,7 @@ uint serialInitSettings(PIO pio, uint sm, uint pin, uint debug_pin, float pio_fr
     sm_config_set_sideset_pins(&c, debug_pin);   // FOR DEBUG
 
     // Shift Register Config
-    sm_config_set_in_shift(&c, true, false, 8);
+    sm_config_set_in_shift(&c, true, false, 32);
     sm_config_set_out_shift(&c, true, false, 8);
     
     // Clock config
@@ -111,7 +112,6 @@ uint serialInitSettings(PIO pio, uint sm, uint pin, uint debug_pin, float pio_fr
     return offset;
 }
 
-
 static inline void serialWritePacket(PIO pio, uint sm, uint8_t *buffer, uint8_t size) {
     for (uint8_t i = 0; i < size; ++i) {
         uint8_t data;
@@ -125,17 +125,16 @@ static inline void serialReadPacket(PIO pio, uint sm, uint8_t *buffer, uint8_t s
         uint8_t data;
         data = pio_sm_get_blocking(pio, sm);
         buffer[i] = data;
-        //serialDebug();
     }
 }
 
 static inline void serialReadMode(PIO pio, uint sm, uint offset) {
-    uint offset_serial_program_read_start = 1;    // Need to update this when PIO line numbers change
+    uint offset_serial_program_read_start = 0;    // Need to update this when PIO line numbers change
     pio_sm_exec_wait_blocking(pio, sm, pio_encode_jmp(offset + offset_serial_program_read_start));
 }
 
 static inline void serialWriteMode(PIO pio, uint sm, uint offset) {
-    uint offset_serial_program_write_start = 16;    // Need to update this when PIO line numbers change
+    uint offset_serial_program_write_start = 18;    // Need to update this when PIO line numbers change
     pio_sm_exec_wait_blocking(pio, sm, pio_encode_jmp(offset + offset_serial_program_write_start));
 }
 
@@ -165,8 +164,10 @@ void serialFollowerInit() {
     serialReadMode(pio, sm, offset);
     // Do nothing
     while (true) {
-        uint8_t data = pio_sm_get_blocking(pio, sm) >> 24;
-
-        printf ("\nData: %d\n", data);
+        //uint32_t data = (pio_sm_get_blocking(pio, sm));
+        //printf ("\nData: %lu\n", data >> 24);
+        printf ("\nData: %lu\n", pio_sm_get_blocking(pio, sm));
+        printf ("\nData: %lu\n", pio_sm_get_blocking(pio, sm) >> 24);
+        printf ("\nData: %lu\n", pio_sm_get_blocking(pio, sm) >> 24);
     }
 }
