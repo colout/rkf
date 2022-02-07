@@ -101,6 +101,7 @@ uint serialInitSettings(PIO pio, uint sm, uint pin, uint debug_pin, float pio_fr
     
     // Clock config
     sm_config_set_clkdiv(&c, div);
+    
 
     // Start
     //if (!isLeader) while (read());  //  will pull down before starting. TODO: Timeout in case started much later
@@ -129,21 +130,22 @@ static inline void serialReadPacket(PIO pio, uint sm, uint8_t *buffer, uint8_t s
 }
 
 static inline void serialReadMode(PIO pio, uint sm, uint offset) {
-    uint serial_program_read_start = 1;    // Need to update this when PIO line numbers change
-    pio_sm_exec_wait_blocking(pio, sm, pio_encode_jmp(offset + serial_program_read_start));
+    uint offset_serial_program_read_start = 1;    // Need to update this when PIO line numbers change
+    pio_sm_exec_wait_blocking(pio, sm, pio_encode_jmp(offset + offset_serial_program_read_start));
 }
 
 static inline void serialWriteMode(PIO pio, uint sm, uint offset) {
-    uint serial_program_write_start = 12;    // Need to update this when PIO line numbers change
-    pio_sm_exec_wait_blocking(pio, sm, pio_encode_jmp(offset + serial_program_write_start));
+    uint offset_serial_program_write_start = 16;    // Need to update this when PIO line numbers change
+    pio_sm_exec_wait_blocking(pio, sm, pio_encode_jmp(offset + offset_serial_program_write_start));
 }
 
 void serialLeaderInit() {
-    PIO pio = pio0;
+    PIO pio = pio1;
     uint sm = pio_claim_unused_sm(pio, true);
     uint offset = serialInitSettings(pio, sm, DATA_PIN, DEBUG_PIN, CLOCK_FREQ, true);
 
     serialWriteMode(pio, sm, offset);
+        sleep_ms(3000);
     
     // Do nothing
     while (true) {
@@ -155,12 +157,12 @@ void serialLeaderInit() {
 }
 
 void serialFollowerInit() {
-    PIO pio = pio0;
+    PIO pio = pio1;
+    
     uint sm = pio_claim_unused_sm(pio, true);
     uint offset = serialInitSettings(pio, sm, DATA_PIN, DEBUG_PIN, CLOCK_FREQ, false);
 
     serialReadMode(pio, sm, offset);
-
     // Do nothing
     while (true) {
         uint8_t data = pio_sm_get_blocking(pio, sm) >> 24;

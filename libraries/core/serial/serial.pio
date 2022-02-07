@@ -3,25 +3,35 @@
 
 .wrap_target
 do_nothing:
-    jmp do_nothing              ; Default action is do nothing
+    jmp do_nothing           ; Default action is do nothing
 
 ;
 ; Read
 ;
 read:
-    set pindirs, 0          [0] ; Step 1: Float to high to indicate "ready"
+    set pindirs, 0 side_set 0         [0] ; Step 1: Float to high to indicate "ready"
+read_size_byte:
+    wait 1 pin 0    [0] ;         Leader will float for a while, but then push high for 1u
+    wait 0 pin 0     [0] ; Step 2: Leader pulls to ground for 1u to announce "ready" and sync timing
+    set x, 7                [4] ;   This offsets by half 1u (1.5u total)
+read_size_loop:
+    in pins, 1  side_set 1     [1] ; Step 3: For each bit(8 total), read halfway through 1u
+    jmp x-- read_size_loop [1]
+read_size_not_ready:
+    mov y ISR  side_set 0            [5]
+    jmp y-- read_byte
+
 read_byte:
     wait 1 pin 0    [0] ;         Leader will float for a while, but then push high for 1u
     wait 0 pin 0     [0] ; Step 2: Leader pulls to ground for 1u to announce "ready" and sync timing
     set x, 7                [4] ;   This offsets by half 1u (1.5u total)
 read_loop:
-    in pins, 1  side_set 1     [1] ; Step 3: For each bit(8 total), read halfway through 1u
+    in pins, 1       [1] ; Step 3: For each bit(8 total), read halfway through 1u
     jmp x-- read_loop [1]
 read_not_ready:
-    nop;set pindirs, 1          [0] ; Step 4: Leader waits for 0.5u, 1u total (already delayed by 0.5u)
-    nop;set pins 0              [0]
-    push block    side_set 0          [4] ; Push o tmain program while in "not-ready" mode. extra wait for saftey
-    jmp read                [0]
+    push block              [4] ; Push o tmain program while in "not-ready" mode. extra wait for saftey
+    jmp y-- read_byte        [1]
+    jmp read            [0]
 
 write:
     pull block              [0]
